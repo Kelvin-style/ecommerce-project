@@ -1,0 +1,12 @@
+$image = $_FILES['image']['name'];
+
+$uploadDir = __DIR__ . "/../uploads/";
+
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0777, true);
+}
+
+$target = $uploadDir . basename($image);
+
+if (move_uploaded_file($_FILES['image']['tmp_name'], $target)) {
+    echo "
