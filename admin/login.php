@@ -1,32 +1,37 @@
+
 <?php
 session_start();
 include("../config/db.php");
 
-// If already logged in → prevent loop
 if (isset($_SESSION['admin'])) {
-    header("Location: orders.php");
+    header("Location: dashboard.php");
     exit();
 }
 
 $error = "";
 
-// LOGIN LOGIC
+// Logout message
+if (isset($_GET['msg']) && $_GET['msg'] == "logged_out") {
+    echo "<p style='color:green;'>You have been logged out successfully</p>";
+}
+
 if (isset($_POST['login'])) {
 
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // SAFE QUERY (basic version)
-    $sql = "SELECT * FROM admin 
-            WHERE username='$username' AND password='$password'";
+    // Secure query (prevents SQL injection)
+    $stmt = $conn->prepare("SELECT * FROM admin WHERE username=? AND password=?");
+    $stmt->bind_param("ss", $username, $password);
+    $stmt->execute();
 
-    $result = $conn->query($sql);
+    $result = $stmt->get_result();
 
-    if ($result && $result->num_rows == 1) {
+    if ($result->num_rows == 1) {
 
         $_SESSION['admin'] = $username;
 
-        header("Location: orders.php");
+        header("Location: dashboard.php");
         exit();
 
     } else {
@@ -34,7 +39,6 @@ if (isset($_POST['login'])) {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html>
 <body>

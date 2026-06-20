@@ -1,3 +1,22 @@
+<?php
+include("header.php");
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// User must be logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Cart must not be empty
+if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
+    die("Your cart is empty. <a href='index.php'>Go shopping</a>");
+}
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,102 +26,83 @@
 
 <body>
 
-    <nav>
-        <h1>MyShop Checkout</h1>
-    </nav>
+<nav>
+    <h1>MyShop Checkout</h1>
 
-    <h2>Complete Your Order</h2>
+    <p>
+        Welcome,
+        <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong>
+        |
+        <a href="logout.php">Logout</a>
+    </p>
+</nav>
 
-    <form id="checkout-form">
+<h2>Complete Your Order</h2>
 
-        <input type="text" id="name" placeholder="Full Name" required><br><br>
+<h3>Your Order Summary</h3>
 
-        <input type="email" id="email" placeholder="Email" required><br><br>
+<?php
 
-        <input type="text" id="phone" placeholder="Phone Number" required><br><br>
+$total = 0;
 
-        <input type="text" id="address" placeholder="Delivery Address" required><br><br>
+foreach ($_SESSION['cart'] as $item) {
 
-        <button type="submit">Place Order</button>
+    $subtotal = $item['price'] * $item['qty'];
 
-    </form>
+    $total += $subtotal;
 
-    <h2>M-Pesa Payment</h2>
+    echo "<p>";
+    echo htmlspecialchars($item['name']);
+    echo " × ";
+    echo $item['qty'];
+    echo " = Ksh ";
+    echo number_format($subtotal, 2);
+    echo "</p>";
+}
 
-<div class="mpesa-box">
+?>
 
-    <input type="text"
-           id="mpesa-number"
-           placeholder="Enter M-Pesa Number">
+<h3>Total: Ksh <?php echo number_format($total, 2); ?></h3>
 
+<form method="POST" action="place_order.php">
+
+    <input
+        type="text"
+        name="name"
+        placeholder="Full Name"
+        required
+    >
     <br><br>
 
-    <input type="number"
-           id="mpesa-amount"
-           placeholder="Enter Amount">
-
+    <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        required
+    >
     <br><br>
 
-    <button id="pay-btn">
-        Pay with M-Pesa
+    <input
+        type="text"
+        name="phone"
+        placeholder="Phone Number"
+        required
+    >
+    <br><br>
+
+    <input
+        type="text"
+        name="address"
+        placeholder="Delivery Address"
+        required
+    >
+    <br><br>
+
+    <button type="submit">
+        Place Order
     </button>
 
-    <p id="payment-message"></p>
-
-</div>
-
-    <p id="message"></p>
-
-    <script>
-
-        let form = document.getElementById("checkout-form");
-        let message = document.getElementById("message");
-
-        form.addEventListener("submit", function(event) {
-
-            event.preventDefault();
-
-            let name = document.getElementById("name").value;
-
-            message.innerText =
-            "✅ Thank you " + name + "! Your order has been placed successfully.";
-
-            form.reset();
-
-        });
-
-    </script>
-
-    <script>
-
-let payBtn = document.getElementById("pay-btn");
-
-payBtn.addEventListener("click", function () {
-
-    let number =
-    document.getElementById("mpesa-number").value;
-
-    let amount =
-    document.getElementById("mpesa-amount").value;
-
-    let paymentMessage =
-    document.getElementById("payment-message");
-
-    if (number !== "" && amount !== "") {
-
-        paymentMessage.innerText =
-        "✅ Payment request sent to " + number;
-
-    } else {
-
-        paymentMessage.innerText =
-        "❌ Enter phone number and amount";
-
-    }
-
-});
-
-</script>
+</form>
 
 </body>
 </html>

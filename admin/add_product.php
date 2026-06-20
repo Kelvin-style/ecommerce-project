@@ -5,7 +5,7 @@ if (!isset($_SESSION['admin'])) {
     header("Location: login.php");
     exit();
 }
-
+include("header.php"); 
 include("../config/db.php");
 
 if (isset($_POST['add'])) {
@@ -14,17 +14,32 @@ if (isset($_POST['add'])) {
     $price = $_POST['price'];
     $description = $_POST['description'];
 
+    // Image upload
     $image = $_FILES['image']['name'];
     $tmp = $_FILES['image']['tmp_name'];
 
-    // ensure uploads folder exists
-    move_uploaded_file($tmp, "../uploads/" . $image);
+    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+    $ext = strtolower(pathinfo($image, PATHINFO_EXTENSION));
 
-    $sql = "INSERT INTO products (name, price, image, description)
-            VALUES ('$name', '$price', '$image', '$description')";
+    if (!in_array($ext, $allowed)) {
+        die("Only JPG, JPEG, PNG, WEBP allowed");
+    }
 
-    if ($conn->query($sql)) {
-        echo "Product Added Successfully!";
+    $newImage = time() . "_" . $image;
+
+    move_uploaded_file($tmp, "../uploads/" . $newImage);
+
+    // Secure insert
+    $stmt = $conn->prepare("
+        INSERT INTO products (name, price, image, description)
+        VALUES (?, ?, ?, ?)
+    ");
+
+    $stmt->bind_param("sdss", $name, $price, $newImage, $description);
+
+    if ($stmt->execute()) {
+        header("Location: products.php");
+        exit();
     } else {
         echo "Error: " . $conn->error;
     }

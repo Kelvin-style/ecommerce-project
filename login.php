@@ -1,82 +1,73 @@
 <?php
-include 'db.php';
+session_start();
+include("config/db.php");
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
+$message = "";
+
+if (isset($_POST['login'])) {
+
+    $email = trim($_POST['email']);
     $password = $_POST['password'];
 
-    echo "Login attempt received for: " . htmlspecialchars($username);
+    // Check if user exists
+    $stmt = $conn->prepare("SELECT * FROM users WHERE email=?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    if ($result->num_rows == 1) {
+
+        $user = $result->fetch_assoc();
+
+        // Verify password
+        if (password_verify($password, $user['password'])) {
+
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_name'] = $user['fullname'];
+
+            header("Location: index.php");
+            exit();
+
+        } else {
+            $message = "Incorrect password.";
+        }
+
+    } else {
+        $message = "User not found.";
+    }
 }
 ?>
+
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Login Page</title>
-    <link rel="stylesheet" href="style.css">
+    <title>User Login</title>
 </head>
-
 <body>
 
-    <nav>
-        <h1>MyShop</h1>
-    </nav>
+<h2>User Login</h2>
 
-    <form id="login-form">
+<form method="POST">
 
-        <h2>Login</h2>
+    <input type="email" name="email" placeholder="Email" required>
+    <br><br>
 
-        <input type="email" id="email" placeholder="Enter Email" required><br><br>
+    <input type="password" name="password" placeholder="Password" required>
+    <br><br>
 
-        <input type="password" id="password" placeholder="Enter Password" required><br><br>
+    <button type="submit" name="login">Login</button>
 
-        <button type="submit">Login</button>
+</form>
 
-        <p id="login-message"></p>
+<p style="color:red;">
+    <?php echo $message; ?>
+</p>
 
-        <hr>
-
-        <h2>Register</h2>
-
-        <input type="text" id="register-name" placeholder="Full Name" required><br><br>
-
-        <input type="email" id="register-email" placeholder="Enter Email" required><br><br>
-
-        <input type="password" id="register-password" placeholder="Create Password" required><br><br>
-
-        <button type="button" id="register-btn">Register</button>
-
-        <p id="register-message"></p>
-
-    </form>
-
-    <script>
-
-        // Login
-        let loginForm = document.getElementById("login-form");
-        let loginMessage = document.getElementById("login-message");
-
-        loginForm.addEventListener("submit", function(event) {
-
-            event.preventDefault();
-
-            loginMessage.innerText = "✅ Login Successful!";
-
-        });
-
-        // Register
-        let registerBtn = document.getElementById("register-btn");
-        let registerMessage = document.getElementById("register-message");
-
-        registerBtn.addEventListener("click", function() {
-
-            registerMessage.innerText =
-            "✅ Registration Successful!";
-
-        });
-
-    </script>
+<p>
+    Don't have an account?
+    <a href="register.php">Register</a>
+</p>
 
 </body>
-
 </html>

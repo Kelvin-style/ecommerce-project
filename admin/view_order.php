@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin'])) {
     exit();
 }
 
+include("header.php");
 include("../config/db.php");
 
 // Validate ID
@@ -13,11 +14,13 @@ if (!isset($_GET['id'])) {
     die("Order ID missing");
 }
 
-$order_id = $_GET['id'];
+$order_id = (int) $_GET['id'];
 
 // Fetch items
-$sql = "SELECT * FROM order_items WHERE order_id=$order_id";
-$result = $conn->query($sql);
+$stmt = $conn->prepare("SELECT * FROM order_items WHERE order_id=?");
+$stmt->bind_param("i", $order_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if (!$result) {
     die("Error fetching order items");
@@ -25,6 +28,23 @@ if (!$result) {
 
 $total = 0;
 ?>
+
+<style>
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    background: #333;
+    color: white;
+}
+
+td, th {
+    padding: 10px;
+    text-align: center;
+}
+</style>
 
 <h2>Order Details #<?php echo $order_id; ?></h2>
 
@@ -57,4 +77,4 @@ while ($row = $result->fetch_assoc()) {
 
 </table>
 
-<h3>Total: Ksh <?php echo $total; ?></h3>
+<h2>Grand Total: Ksh <?php echo number_format($total,2); ?></h2>

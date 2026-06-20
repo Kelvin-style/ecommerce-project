@@ -1,3 +1,4 @@
+<?php include("header.php"); ?>
 <?php
 session_start();
 
@@ -15,8 +16,16 @@ if (!isset($_GET['id'])) {
 
 $id = $_GET['id'];
 
-// Fetch product
-$result = $conn->query("SELECT * FROM products WHERE id=$id");
+// Fetch product safely
+$stmt = $conn->prepare("SELECT * FROM products WHERE id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows == 0) {
+    die("Product not found");
+}
+
 $product = $result->fetch_assoc();
 
 // UPDATE LOGIC
@@ -25,7 +34,6 @@ if (isset($_POST['update'])) {
     $name = $_POST['name'];
     $price = $_POST['price'];
 
-    // Keep old image by default
     $imageName = $product['image'];
 
     // If new image uploaded
@@ -37,13 +45,21 @@ if (isset($_POST['update'])) {
         move_uploaded_file($tmp, "../uploads/" . $imageName);
     }
 
-    // Update DB
-    $conn->query("UPDATE products 
-                  SET name='$name', price='$price', image='$imageName' 
-                  WHERE id=$id");
+    // Secure update
+    $update = $conn->prepare("
+        UPDATE products 
+        SET name=?, price=?, image=? 
+        WHERE id=?
+    ");
 
-    header("Location: products.php");
-    exit();
+    $update->bind_param("sdsi", $name, $price, $imageName, $id);
+
+    if ($update->execute()) {
+        header("Location: products.php");
+        exit();
+    } else {
+        echo "Error updating product: " . $conn->error;
+    }
 }
 ?>
 
@@ -51,8 +67,7 @@ if (isset($_POST['update'])) {
 <html>
 <body>
 
-<!-- NAVIGATION -->
-<a href="products.php">Back</a> | 
+<a href="products.php">← Back</a> | 
 <a href="logout.php">Logout</a>
 
 <h2>Edit Product</h2>

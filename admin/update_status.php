@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin'])) {
     exit();
 }
 
+include("header.php");
 include("../config/db.php");
 
 // Check ID
@@ -13,23 +14,35 @@ if (!isset($_GET['id'])) {
     die("Order ID missing");
 }
 
-$id = $_GET['id'];
+$id = (int) $_GET['id'];
 
-// Get order
-$order = $conn->query("SELECT * FROM orders WHERE id=$id");
+// Fetch order
+$stmt = $conn->prepare("SELECT * FROM orders WHERE id=?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if (!$order || $order->num_rows == 0) {
+if ($result->num_rows == 0) {
     die("Order not found");
 }
 
-$order = $order->fetch_assoc();
+$order = $result->fetch_assoc();
+
+// Allowed statuses (IMPORTANT SECURITY FIX)
+$allowed_status = ["Pending", "Processing", "Delivered", "Cancelled"];
 
 // Update status
 if (isset($_POST['update'])) {
 
     $status = $_POST['status'];
 
-    $conn->query("UPDATE orders SET status='$status' WHERE id=$id");
+    if (!in_array($status, $allowed_status)) {
+        die("Invalid status value");
+    }
+
+    $stmt = $conn->prepare("UPDATE orders SET status=? WHERE id=?");
+    $stmt->bind_param("si", $status, $id);
+    $stmt->execute();
 
     header("Location: orders.php");
     exit();
@@ -49,10 +62,10 @@ if (isset($_POST['update'])) {
     <br><br>
 
     <select name="status" required>
-        <option value="Pending">Pending</option>
-        <option value="Processing">Processing</option>
-        <option value="Delivered">Delivered</option>
-        <option value="Cancelled">Cancelled</option>
+        <option value="Pending" <?php if($order['status']=="Pending") echo "selected"; ?>>Pending</option>
+        <option value="Processing" <?php if($order['status']=="Processing") echo "selected"; ?>>Processing</option>
+        <option value="Delivered" <?php if($order['status']=="Delivered") echo "selected"; ?>>Delivered</option>
+        <option value="Cancelled" <?php if($order['status']=="Cancelled") echo "selected"; ?>>Cancelled</option>
     </select>
 
     <br><br>
